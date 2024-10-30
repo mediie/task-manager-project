@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Task Manager</title>
+  <style>
+    body {
+      font-family: "Times New Roman", Times, serif; /* Change font to Times New Roman */
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #taskList {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 10px;
+    }
+
+    .task-tab {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      gap: 15px; 
+    }
+
+    .task-tab .buttons {
+      display: flex;
+      gap: 5px; 
+    }
+
+    .task-tab .buttons button {
+      margin-right: 5px;
+    }
+
+    .timer {
+      margin-left: 10px;
+    }
+
+    table {
+      margin: 0 auto; /* Center the table horizontally */
+      border-collapse: collapse;
+      width: 80%; /* Set the width of the table */
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid black;
+      text-align: center; /* Center align text in cells */
+    }
+
+    th {
+      background-color: #333; /* Dark gray background for header cells */
+      color: white; /* White text color for header cells */
+    }
+  </style>
+</head>
+<body>
+  <h1>Task Manager</h1>
+  <table>
+    <tr>
+      <th>Task</th>
+      <th>Duration (minutes)</th>
+      <th>Color</th>
+      <th>Add Task</th>
+    </tr>
+    <tr>
+      <td><input type="text" id="task" /></td>
+      <td><input type="number" id="duration" /></td>
+      <td>
+        <select id="color">
+          <option value="red">Red</option>
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="yellow">Yellow</option>
+        </select>
+      </td>
+      <td><button onclick="addTask()">Add Task</button></td>
+    </tr>
+  </table>
+  <h2>Tasks:</h2>
+  <ul id="taskList"></ul>
+
+  <script>
+    const tasks = []; // Array to store tasks and durations
+    let timers = {}; // Object to store task timers
+
+    function addTask() {
+      const taskName = document.getElementById("task").value.trim();
+      const duration = parseInt(document.getElementById("duration").value, 10);
+      const color = document.getElementById("color").value;
+
+      if (taskName === "" || isNaN(duration) || duration <= 0) {
+        alert("Please enter a valid task name and duration!");
+        return;
+      }
+
+      tasks.push({ name: taskName, duration: duration * 60, color: color });
+      displayTasks();
+      document.getElementById("task").value = "";
+      document.getElementById("duration").value = "";
+    }
+
+    function moveTaskUp(index) {
+      if (index > 0) {
+        const task = tasks.splice(index, 1)[0];
+        tasks.splice(index - 1, 0, task);
+        displayTasks();
+      }
+    }
+
+    function moveTaskDown(index) {
+      if (index < tasks.length - 1) {
+        const task = tasks.splice(index, 1)[0];
+        tasks.splice(index + 1, 0, task);
+        displayTasks();
+      }
+    }
+
+    function displayTasks() {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const li = document.createElement("li");
+        li.style.listStyle = "none";
+
+        const taskTab = document.createElement("div");
+        taskTab.classList.add("task-tab");
+        taskTab.textContent = task.name;
+        taskTab.style.backgroundColor = task.color;
+
+        const timer = document.createElement("span");
+        timer.textContent = "00:00";
+
+        const buttons = document.createElement("div");
+
+        const startButton = createButton("Start", () => startTaskTimer(task, timer));
+        const pauseButton = createButton("Pause", () => pauseTaskTimer(task.name));
+        const resetButton = createButton("Reset", () => resetTaskTimer(task.name, timer));
+
+        buttons.append(startButton, pauseButton, resetButton);
+
+        if (index > 0) {
+          buttons.appendChild(createButton("Move Up", () => moveTaskUp(index)));
+        }
+
+        if (index < tasks.length - 1) {
+          buttons.appendChild(createButton("Move Down", () => moveTaskDown(index)));
+        }
+
+        taskTab.appendChild(buttons);
+        taskTab.appendChild(timer);
+        li.appendChild(taskTab);
+        taskList.appendChild(li);
+      });
+    }
+
+    function createButton(text, onClick) {
+      const button = document.createElement("button");
+      button.textContent = text;
+      button.addEventListener("click", onClick);
+      return button;
+    }
+
+    function startTaskTimer(task, timer) {
+      let startTime = null;
+      let remainingTime = task.duration * 1000;
+
+      cancelAnimationFrame(timers[task.name]);
+
+      function updateTimer(timestamp) {
+        if (!startTime) {
+          startTime = timestamp;
+        }
+
+        const elapsed = timestamp - startTime;
+        const remaining = Math.max(remainingTime - elapsed, 0);
+
+        const minutes = Math.floor(remaining / (1000 * 60));
+        const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+        timer.textContent = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+        if (remaining > 0) {
+          timers[task.name] = requestAnimationFrame(updateTimer);
+        } else {
+          cancelAnimationFrame(timers[task.name]);
+          alert(`Time's up for task: ${task.name}`);
+        }
+      }
+
+      timers[task.name] = requestAnimationFrame(updateTimer);
+    }
+
+    function pauseTaskTimer(taskName) {
+      cancelAnimationFrame(timers[taskName]);
+    }
+
+    function resetTaskTimer(taskName, timer) {
+      cancelAnimationFrame(timers[taskName]);
+      timer.textContent = "00:00";
+    }
+
+    displayTasks();
+  </script>
+</body>
+</html>
